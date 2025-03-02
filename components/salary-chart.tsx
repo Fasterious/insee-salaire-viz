@@ -67,21 +67,21 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-slate-700">Distribution des salaires</h3>
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-xs">
+        <h3 className="font-medium text-slate-700 whitespace-nowrap">Distribution des salaires</h3>
         {userSalary !== null && percentageBelow !== null && (
-          <div className="text-sm text-slate-500">
-            <span className="font-medium text-blue-600">{euroFormatter(userSalary)}</span> est supérieur à <span className="font-medium text-blue-600">{percentageBelow.toFixed(1)}%</span> des salaires
+          <div className="text-slate-500 ml-2 px-2 py-1 bg-slate-50 rounded whitespace-nowrap">
+            <span className="font-medium text-blue-600">{euroFormatter(userSalary)}</span> &gt; <span className="font-medium text-blue-600">{percentageBelow.toFixed(1)}%</span>
           </div>
         )}
       </div>
       
-      <div className="w-full" style={{ height: '500px' }}>
+      <div className="w-full" style={{ height: '560px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
-            margin={{ top: 20, right: 20, left: 20, bottom: 40 }}
+            margin={{ top: 20, right: 30, left: 50, bottom: 40 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
@@ -100,8 +100,10 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
                 value: 'Salaire mensuel net (€)', 
                 angle: -90, 
                 position: 'insideLeft',
+                offset: -30,
                 style: { textAnchor: 'middle' }
               }}
+              tickMargin={8}
             />
             <Tooltip 
               formatter={(value: number) => [euroFormatter(value), 'Salaire']}
@@ -162,9 +164,9 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
         </ResponsiveContainer>
       </div>
       
-      <div className="mt-2 text-xs text-gray-500">
-        <p>Chaque point représente un centile de la distribution des salaires.</p>
-        <p>Les points plus larges représentent les centiles clés (10%, 25%, 50%, 75%, 90%).</p>
+      <div className="text-xs text-gray-500 flex items-center gap-3 justify-end">
+        <span className="whitespace-nowrap">• Centiles clés</span>
+        <span className="whitespace-nowrap">• Intermédiaires</span>
       </div>
     </div>
   );
