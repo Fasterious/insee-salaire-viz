@@ -11,7 +11,8 @@ import {
   Tooltip, 
   ReferenceLine,
   ReferenceArea,
-  Label
+  Label,
+  Scatter
 } from 'recharts';
 
 interface SalaryChartProps {
@@ -48,6 +49,22 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
   
   // Création des ticks personnalisés pour l'axe X
   const customTicks = getIndicesForCentiles().map(index => data[index].centile);
+
+  // Déterminer la couleur du point en fonction du centile
+  const getPointColor = (centile: number) => {
+    if ([10, 25, 50, 75, 90].includes(centile)) {
+      return "#0369a1"; // Bleu plus foncé pour les centiles principaux
+    }
+    return "#60a5fa"; // Bleu plus clair pour les autres centiles
+  };
+
+  // Déterminer la taille du point en fonction du centile
+  const getPointSize = (centile: number) => {
+    if ([10, 25, 50, 75, 90].includes(centile)) {
+      return 6; // Points plus grands pour les centiles principaux
+    }
+    return 4; // Points plus petits pour les autres centiles
+  };
 
   return (
     <div className="space-y-4">
@@ -90,13 +107,27 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
               formatter={(value: number) => [euroFormatter(value), 'Salaire']}
               labelFormatter={(value: number) => `Centile ${value}`}
             />
+            
+            {/* Ligne principale avec points visibles */}
             <Line 
               type="monotone" 
               dataKey="salaire" 
               stroke="#0369a1" 
               strokeWidth={2} 
-              dot={false} 
-              activeDot={{ r: 6 }}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                return (
+                  <circle 
+                    cx={cx} 
+                    cy={cy} 
+                    r={getPointSize(payload.centile)} 
+                    fill={getPointColor(payload.centile)}
+                    stroke="#fff"
+                    strokeWidth={1}
+                  />
+                );
+              }}
+              activeDot={{ r: 8, fill: "#0284c7", stroke: "#fff", strokeWidth: 2 }}
             />
             
             {userSalary !== null && (
@@ -129,6 +160,11 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
             )}
           </LineChart>
         </ResponsiveContainer>
+      </div>
+      
+      <div className="mt-2 text-xs text-gray-500">
+        <p>Chaque point représente un centile de la distribution des salaires.</p>
+        <p>Les points plus larges représentent les centiles clés (10%, 25%, 50%, 75%, 90%).</p>
       </div>
     </div>
   );
