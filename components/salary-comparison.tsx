@@ -7,12 +7,13 @@ import { FilterSection } from './filter-section';
 import { SalaryChart } from './salary-chart';
 import { DataTable } from './data-table';
 import { FilterOptions, FilterType, SalaryData } from '@/lib/data/types';
+import { filterGroups } from '@/lib/data/mock-data'; // Nous gardons les groupes de filtres
 import { 
+  fetchSalaryData,
   calculatePercentageBelow, 
-  filterGroups, 
-  generateSalaryDistribution, 
-  getMedianSalary 
-} from '@/lib/data/mock-data';
+  getMedianSalary,
+  applyFilters
+} from '@/lib/data/supabase-data';
 
 export function SalaryComparison() {
   // État pour les données de salaire
@@ -20,6 +21,8 @@ export function SalaryComparison() {
   const [userSalary, setUserSalary] = useState<number | null>(null);
   const [percentageBelow, setPercentageBelow] = useState<number | null>(null);
   const [medianSalary, setMedianSalary] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
   // État pour les filtres
   const [selectedFilters, setSelectedFilters] = useState<FilterOptions>({
@@ -29,54 +32,46 @@ export function SalaryComparison() {
     activite: 'ensemble'
   });
   
-  // Initialiser les données au chargement du composant
+  // Charger les données de base depuis Supabase
   useEffect(() => {
-    const data = generateSalaryDistribution();
-    setSalaryData(data);
-    setMedianSalary(getMedianSalary(data));
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchSalaryData();
+        
+        if (data.length === 0) {
+          setError("Aucune donnée trouvée dans la base de données.");
+          return;
+        }
+        
+        setSalaryData(data);
+        setMedianSalary(getMedianSalary(data));
+        setError(null);
+      } catch (err: any) {
+        console.error("Erreur lors du chargement des données:", err);
+        setError(`Erreur lors du chargement des données: ${err.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
   }, []);
   
-  // Mettre à jour les données lorsque les filtres changent
+  // Appliquer les filtres lorsque l'utilisateur change ses sélections
   useEffect(() => {
-    // Dans une application réelle, nous ferions un appel API ici avec les filtres
-    // Pour cette démo, nous générons simplement de nouvelles données avec une légère variation
-    const data = generateSalaryDistribution().map(item => {
-      let multiplier = 1.0;
-      
-      // Appliquer des variations en fonction des filtres
-      if (selectedFilters.sexe === 'femme') multiplier *= 0.85;
-      if (selectedFilters.sexe === 'homme') multiplier *= 1.15;
-      
-      if (selectedFilters.profession === 'cadres') multiplier *= 1.8;
-      if (selectedFilters.profession === 'professions_intermediaires') multiplier *= 1.2;
-      if (selectedFilters.profession === 'employes') multiplier *= 0.9;
-      if (selectedFilters.profession === 'ouvriers') multiplier *= 0.85;
-      
-      if (selectedFilters.age === 'moins_30') multiplier *= 0.8;
-      if (selectedFilters.age === '30_39') multiplier *= 1.0;
-      if (selectedFilters.age === '40_49') multiplier *= 1.1;
-      if (selectedFilters.age === '50_plus') multiplier *= 1.2;
-      
-      if (selectedFilters.activite === 'industrie') multiplier *= 1.1;
-      if (selectedFilters.activite === 'construction') multiplier *= 1.05;
-      if (selectedFilters.activite === 'commerce') multiplier *= 0.95;
-      if (selectedFilters.activite === 'services') multiplier *= 1.0;
-      if (selectedFilters.activite === 'administration') multiplier *= 0.9;
-      
-      return {
-        ...item,
-        salaire: Math.round(item.salaire * multiplier)
-      };
-    });
+    if (salaryData.length === 0) return;
     
-    setSalaryData(data);
-    setMedianSalary(getMedianSalary(data));
+    // Appliquer les filtres aux données de base
+    const filteredData = applyFilters(salaryData, selectedFilters);
+    setSalaryData(filteredData);
+    setMedianSalary(getMedianSalary(filteredData));
     
     // Recalculer le pourcentage si un salaire utilisateur est défini
     if (userSalary !== null) {
-      setPercentageBelow(calculatePercentageBelow(data, userSalary));
+      setPercentageBelow(calculatePercentageBelow(filteredData, userSalary));
     }
-  }, [selectedFilters, userSalary]);
+  }, [selectedFilters]);
   
   // Gérer le changement de filtre
   const handleFilterChange = (type: FilterType, value: string) => {
@@ -91,6 +86,29 @@ export function SalaryComparison() {
     setUserSalary(salary);
     setPercentageBelow(calculatePercentageBelow(salaryData, salary));
   };
+
+  // Afficher un message de chargement ou d'erreur si nécessaire
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-6 sm:px-8 py-6 text-center">
+        <p className="text-lg">Chargement des données de salaires...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-6 sm:px-8 py-6">
+        <div className="bg-red-50 p-4 rounded border border-red-200 text-red-700">
+          <h2 className="text-lg font-semibold mb-2">Erreur</h2>
+          <p>{error}</p>
+          <p className="mt-2 text-sm">
+            Vérifiez que votre table Supabase contient des données et que la connexion est correctement configurée.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-6 sm:px-8 py-6">
