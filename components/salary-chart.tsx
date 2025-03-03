@@ -120,6 +120,7 @@ export function SalaryChart({ data, userSalary, percentageBelow }: SalaryChartPr
                 const { cx, cy, payload } = props;
                 return (
                   <circle 
+                    key={`dot-${payload.centile}`}
                     cx={cx} 
                     cy={cy} 
                     r={getPointSize(payload.centile)} 
